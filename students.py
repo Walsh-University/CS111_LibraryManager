@@ -1,23 +1,52 @@
-from library_functions.library_operations import (
-    add_book,
-    remove_book,
-    mark_as_read,
-    get_books_by_author,
-)
+# library_manager.py
+# Basic Library Manager
+# Demonstrates variables, input/output, and basic calculations
+
+def add_book(books, title, author, year, genre, read_status):
+    """Add a new book to the library"""
+    new_book = {'title': '1984', 'author': 'George Orwell', 'year': 1949, 'genre': 'Science fiction',
+                'read_status': False}
+    books.append(new_book)
+    # create a dictionary    
+
+
+def remove_book(books, title):
+    """Remove a book from the library by title"""
+    for index, book in enumerate(books):
+        if book['title'] == title:
+            del books[index]
+            return True  # Book found and removed
+    return False  # Book not found
+
+
+def mark_as_read(books, title):
+    """Mark a book as read"""
+    # Mark book as read
+
+    marked = mark_as_read(library, "1984")
+
+    # Check if book was marked and print the updated library
+    if marked:
+        print("Book marked as read successfully.")
+    else:
+        print("Book not found.")
+
+
+def get_books_by_author(books, author):
+    """Return all books by a specific author"""
+    pass
 
 
 def main():
-    library = {}
     # Welcome message
     print("\nWelcome to My Library Manager!")
     print("Please enter information for three books.\n")
 
     # Variables for Book 1
     print("Book 1:")
-    title1 = input("Enter title: ")
-    author1 = input("Enter author: ")
-    year1 = int(input("Enter publication year: "))
-    add_book(library, title1, author1, year1, False)
+    title1 = input("Enter title: ").strip()
+    author1 = input("Enter author: ").strip()
+    year1 = int(input("Enter publication year: ").strip())
     print(f"Added: {title1} by {author1} ({year1})\n")
 
     # Variables for Book 2
@@ -25,7 +54,6 @@ def main():
     title2 = input("Enter title: ").strip()
     author2 = input("Enter author: ").strip()
     year2 = int(input("Enter publication year: ").strip())
-    add_book(library, title2, author2, year2, False)
     print(f"Added: {title2} by {author2} ({year2})\n")
 
     # Variables for Book 3
@@ -33,32 +61,13 @@ def main():
     title3 = input("Enter title: ").strip()
     author3 = input("Enter author: ").strip()
     year3 = int(input("Enter publication year: ").strip())
-    add_book(library, title3, author3, year3, False)
     print(f"Added: {title3} by {author3} ({year3})\n")
-
-    remove = input("Would you like to remove a book? (y/n) ").strip()
-    if remove == "y":
-        title = input("Enter title of book to remove: ").strip()
-        remove_book(library, title)
-        print(f"Removed: {title}\n")
-
-    mark_read = input("Would you like to mark a book as read? (y/n) ").strip()
-    if mark_read == "y":
-        title = input("Enter title of book to mark as read: ").strip()
-        mark_as_read(library, title)
-        print(f"Marked as read: {title}\n")
-
-    get_book = input("Would you like to get a book by author? (y/n) ").strip()
-    if get_book == "y":
-        author = input("Enter author of book to get: ").strip()
-        books_by_author = get_books_by_author(library, author)
-        print(f"Books: {books_by_author}\n")
 
     # Calculate statistics
     average_year = (year1 + year2 + year3) / 3
     total_title_length = len(title1) + len(title2) + len(title3)
 
-    # Find the oldest book
+    # Find oldest book
     oldest_year = min(year1, year2, year3)
     if oldest_year == year1:
         oldest_book = title1
