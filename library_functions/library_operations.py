@@ -3,8 +3,8 @@ from .book import Book
 
 class Library:
 
-    def __init__(self):
-        self.books = {}
+    def __init__(self, books=None):
+        self.books = books if books is not None else {}
 
     def add_book(self, book: Book):
         """Add a new book to the library"""
@@ -57,3 +57,8 @@ class Library:
 
     def __iter__(self):
         return iter(self.books.values())
+
+    def load_books(self, book_loader):
+        """Load books from a file"""
+        self.books = book_loader.load()
+        return self.books
