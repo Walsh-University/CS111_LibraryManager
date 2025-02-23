@@ -1,5 +1,5 @@
-Main GitHub repo:
-https://github.com/Walsh-University/CS111_LibraryManager
+#Main GitHub repo:
+#https://github.com/Walsh-University/CS111_LibraryManager
 
 #importing:
 import math
@@ -8,10 +8,10 @@ from math import sqrt
 ################################## Classes ##################################
 # class definition
 class myClass:
-class derivedClass(baseClass):
+class derivedClass(myClass):
 
 # private attributes (Encapsulation):
-preface with an underscore - e.g., self._attributeName
+#preface with an underscore - e.g., self._attributeName
 
 # class properties - read (Encapsulation):
 @property

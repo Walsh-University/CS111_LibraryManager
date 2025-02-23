@@ -1,0 +1,29 @@
+/* static/styles.css */
+body {
+    background-color: #f8f9fa;
+}
+
+.table th {
+    background-color: #e9ecef;
+}
+
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-group-sm .btn {
+    margin-right: 2px;
+}
+
+#statistics-container ul {
+    margin-bottom: 0;
+}
+
+.table-responsive {
+    border-radius: 0.25rem;
+    overflow: hidden;
+}

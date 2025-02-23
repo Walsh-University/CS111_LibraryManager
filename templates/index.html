@@ -1,0 +1,432 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../static/library.css">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" href="/static">Library Management System</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link active" href="/static">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/web/add">Add Book</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/docs">API Docs</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <h1 class="mb-4">Library Catalog</h1>
+
+    <!-- Statistics Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2 class="card-title h5 mb-0">Library Statistics</h2>
+        </div>
+        <div class="card-body" id="statistics-container">
+            <p>Loading statistics...</p>
+        </div>
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="mb-4">
+        <div class="row">
+            <div class="col-md-4">
+                <label for="category-filter"></label><select id="category-filter" class="form-select">
+                <option value="">All Categories</option>
+                <option value="Unknown">Unknown</option>
+                <option value="Reference">Reference</option>
+                <option value="NonFiction">Non-Fiction</option>
+                <option value="Fiction">Fiction</option>
+                <option value="Biography">Biography</option>
+                <option value="Children">Children</option>
+                <option value="YoungAdult">Young Adult</option>
+            </select>
+            </div>
+            <div class="col-md-4">
+                <input type="text" id="search-input" class="form-control" placeholder="Search books...">
+            </div>
+            <div class="col-md-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="read-filter">
+                    <label class="form-check-label" for="read-filter">
+                        Show only read books
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Books Table -->
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+            <tr>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Year</th>
+                <th>Pages</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody id="books-container">
+            {% if books %}
+            {% for book in books %}
+            <tr data-category="{{ book.category }}" data-read="{{ book.read_status }}" class="book-row">
+                <td>{{ book.title }}</td>
+                <td>{{ book.author }}</td>
+                <td>{{ book.year }}</td>
+                <td>{{ book.pages }}</td>
+                <td>{{ book.category }}</td>
+                <td>
+                    {% if book.read_status %}
+                    <span class="badge bg-success">Read</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">Unread</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <a href="/web/edit/{{ book.title }}" class="btn btn-primary">Edit</a>
+                        <button onclick="markAsRead('{{ book.title }}')"
+                                class="btn btn-success {% if book.read_status %}disabled{% endif %}">
+                            Mark Read
+                        </button>
+                        <button onclick="deleteBook('{{ book.title }}')" class="btn btn-danger">Delete</button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+                <td colspan="7" class="text-center">No books in library. <a href="/web/add">Add your first book!</a>
+                </td>
+            </tr>
+            {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- JS to handle filtering and actions -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadStatistics();
+        setupFilters();
+    });
+
+    function loadStatistics() {
+        fetch('/statistics')
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    document.getElementById('statistics-container').innerHTML = `<p>${data.message}</p>`;
+                    return;
+                }
+
+                let statsHtml = `
+                        <div class="row">
+                            <div class="col-md-4">
+                                <p>Total Books: <strong>${data.total_books}</strong></p>
+                                <p>Average Year: <strong>${data.average_year}</strong></p>
+                            </div>
+                            <div class="col-md-4">
+                                <p>Total Pages: <strong>${data.total_pages}</strong></p>
+                                <p>Read: <strong>${data.read_books}</strong> | Unread: <strong>${data.unread_books}</strong></p>
+                            </div>
+                            <div class="col-md-4">
+                                <p>Categories:</p>
+                                <ul class="list-unstyled">
+                    `;
+
+                for (const [category, count] of Object.entries(data.category_counts)) {
+                    statsHtml += `<li>${category}: ${count}</li>`;
+                }
+
+                statsHtml += `
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+
+                document.getElementById('statistics-container').innerHTML = statsHtml;
+            })
+            .catch(error => {
+                console.error('Error loading statistics:', error);
+                document.getElementById('statistics-container').innerHTML = '<p>Error loading statistics</p>';
+            });
+    }
+
+    function setupFilters() {
+        const categoryFilter = document.getElementById('category-filter');
+        const searchInput = document.getElementById('search-input');
+        const readFilter = document.getElementById('read-filter');
+
+        function applyFilters() {
+            const selectedCategory = categoryFilter.value;
+            const searchTerm = searchInput.value.toLowerCase();
+            const showOnlyRead = readFilter.checked;
+
+            const rows = document.querySelectorAll('.book-row');
+            rows.forEach(row => {
+                const category = row.getAttribute('data-category');
+                const isRead = row.getAttribute('data-read') === 'true';
+                const title = row.cells[0].textContent.toLowerCase();
+                const author = row.cells[1].textContent.toLowerCase();
+
+                const matchesCategory = !selectedCategory || category === selectedCategory;
+                const matchesSearch = !searchTerm ||
+                    title.includes(searchTerm) ||
+                    author.includes(searchTerm);
+                const matchesReadStatus = !showOnlyRead || isRead;
+
+                if (matchesCategory && matchesSearch && matchesReadStatus) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        categoryFilter.addEventListener('change', applyFilters);
+        searchInput.addEventListener('input', applyFilters);
+        readFilter.addEventListener('change', applyFilters);
+    }
+
+    function markAsRead(title) {
+        if (!confirm(`Mark "${title}" as read?`)) return;
+
+        fetch(`/books/${title}/read`, {method: 'POST'})
+            .then(response => {
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    throw new Error('Failed to mark book as read');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while marking the book as read');
+            });
+    }
+
+    function deleteBook(title) {
+        if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+
+        fetch(`/books/${title}`, {method: 'DELETE'})
+            .then(response => {
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    throw new Error('Failed to delete book');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while deleting the book');
+            });
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+<!-- templates/add_book.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add New Book - Library Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" href="/static">Library Management System</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="/static">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="/web/add">Add Book</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/docs">API Docs</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="card-title h5 mb-0">Add New Book</h1>
+                </div>
+                <div class="card-body">
+                    {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ error }}
+                    </div>
+                    {% endif %}
+
+                    <form method="post" action="/web/add">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="author" class="form-label">Author</label>
+                            <input type="text" class="form-control" id="author" name="author" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="year" class="form-label">Year</label>
+                            <input type="number" class="form-control" id="year" name="year" min="1000" max="2099"
+                                   required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="pages" class="form-label">Pages</label>
+                            <input type="number" class="form-control" id="pages" name="pages" min="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Category</label>
+                            <select class="form-select" id="category" name="category" required>
+                                {% for category in categories %}
+                                <option value="{{ category }}">{{ category }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Add Book</button>
+                            <a href="/static" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+<!-- templates/edit_book.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Book - Library Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" href="/static">Library Management System</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="/static">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/web/add">Add Book</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/docs">API Docs</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="card-title h5 mb-0">Edit Book: {{ book.title }}</h1>
+                </div>
+                <div class="card-body">
+                    {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ error }}
+                    </div>
+                    {% endif %}
+
+                    <form method="post" action="/web/edit/{{ book.title }}">
+                        <div class="mb-3">
+                            <label for="new_title" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="new_title" name="new_title"
+                                   value="{{ book.title }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="author" class="form-label">Author</label>
+                            <input type="text" class="form-control" id="author" name="author" value="{{ book.author }}"
+                                   required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="year" class="form-label">Year</label>
+                            <input type="number" class="form-control" id="year" name="year" value="{{ book.year }}"
+                                   min="1000" max="2099" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="pages" class="form-label">Pages</label>
+                            <input type="number" class="form-control" id="pages" name="pages" value="{{ book.pages }}"
+                                   min="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Category</label>
+                            <select class="form-select" id="category" name="category" required>
+                                {% for category in categories %}
+                                <option value="{{ category }}" {% if category== book.category %}selected{% endif %}>{{
+                                    category }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                            <a href="/static" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
